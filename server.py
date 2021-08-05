@@ -1,9 +1,10 @@
 import os
 import socket
 import threading
+import time
 
 IP = socket.gethostbyname(socket.gethostname())
-PORT = 5008
+PORT = 5016
 ADDR = (IP, PORT)
 SIZE = 1024
 FORMAT = "utf-8"
@@ -27,7 +28,7 @@ def handle_client(conn, addr):
             conn.send("UPLOAD@<filename> : upload a file to server_data\n".encode(FORMAT))
             conn.send("DOWNLOAD@<filename> : download a file from server_data\n".encode(FORMAT))
             conn.send("HELP : help section\n".encode(FORMAT))
-            conn.send("LOGOUT : logout of client\n".encode(FORMAT))
+            conn.send("LOGOUT : logout of client".encode(FORMAT))
         elif cmd == "SEND":
             alert = f"[MESSAGE] {addr} {data[1]}"
             print(f"{alert}")
@@ -37,14 +38,21 @@ def handle_client(conn, addr):
             filepath = os.path.join(SERVER_DATA_PATH, filename)
             if os.path.isfile(filepath):
                 conn.send(f"[SUCCESS] File Exists! {str(os.path.getsize(filepath))}".encode(FORMAT))
-                with open(filepath, 'rb') as f:
-                    bytesToSend = f.read(1024)
-                    conn.send(bytesToSend)
-                    while bytesToSend != "":
-                        bytesToSend = f.read(1024)
-                        conn.send(bytesToSend)
+                userResponse = conn.recv(1024).decode(FORMAT)
+                if userResponse[:2] == "OK":
+                    with open(filepath, 'rb') as f:
+                        while True:
+                            bytesToSend = f.read(1024)
+                            if not bytesToSend:
+                                break
+                            conn.send(bytesToSend)
+                            time.sleep(0.1)
             else:
                 conn.send("[ERROR] File Not Found!")
+            conn.send("Task finished!".encode(FORMAT))
+        elif cmd == "SUCCESS":
+            msg = data[1]
+            print(f"{msg}")
     print(f"[DISCONNECTED] {addr} disconnected")
     conn.close()
 

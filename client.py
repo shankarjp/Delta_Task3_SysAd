@@ -2,7 +2,7 @@ import socket
 import os
 
 IP = socket.gethostbyname(socket.gethostname())
-PORT = 5008
+PORT = 5016
 ADDR = (IP, PORT)
 FORMAT = "utf-8"
 SIZE = 1024
@@ -33,20 +33,22 @@ def main():
             filename = mod_data[1]
             client.send(raw_data.encode(FORMAT))
             data = client.recv(1024).decode(FORMAT)
-            print(data)
             if data[:9] == "[SUCCESS]":
                 filesize = int(data[23:])
-                filepath = os.path.join(CLIENT_DATA_PATH, filename)
-                f = open(filepath, 'wb')
-                data = client.recv(1024)
-                totalRecv = len(data)
-                f.write(data)
-                while totalRecv < filesize:
+                message = input("File exists, " + str(filesize) + "Bytes, download? (Y/N)? ")
+                if message == 'Y':
+                    client.send("OK".encode(FORMAT))
+                    filepath = os.path.join(CLIENT_DATA_PATH, filename)
+                    f = open(filepath, 'wb')
                     data = client.recv(1024)
-                    totalRecv += len(data)
+                    totalRecv = len(data)
                     f.write(data)
-                print("Download Complete!")
-                f.close()
+                    while totalRecv < filesize:
+                        data = client.recv(1024)
+                        totalRecv += len(data)
+                        f.write(data)
+                    print("Download Completed!")
+                    f.close()
             else:
                 print("File Does Not Exist!")
 
