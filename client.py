@@ -1,5 +1,6 @@
 import socket
 import os
+import time
 
 IP = socket.gethostbyname(socket.gethostname())
 PORT = 5017
@@ -51,6 +52,32 @@ def main():
                     f.close()
             else:
                 print("File Does Not Exist!")
+        elif cmd == "UPLOAD":
+            filename = mod_data[1]
+            client.send(raw_data.encode(FORMAT))
+            filepath = os.path.join(CLIENT_DATA_PATH, filename)
+            if os.path.isfile(filepath):
+                time.sleep(0.01)
+                client.send(f"[SUCCESS] File Exists! {str(os.path.getsize(filepath))}".encode(FORMAT))
+                time.sleep(0.01)
+                serverResponse = client.recv(SIZE).decode(FORMAT)
+                if serverResponse[:2] == "OK":
+                    with open(filepath, 'rb') as f:
+                        num = float(os.path.getsize(filepath))/1024
+                        cnum = 0
+                        while True:
+                            file_data = f.read(SIZE)
+                            cnum += 1
+                            per = (cnum/num) * 100
+                            print(f"{per}% uploaded")
+                            if file_data:
+                                client.send(file_data)
+                            else:
+                                print("File Uploaded")
+                                break
+                else:
+                    client.send("[ERROR] File Not Found!")
+                time.sleep(0.01)
 
     print("Disconnected from the server")
     client.close()

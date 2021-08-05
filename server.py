@@ -58,6 +58,30 @@ def handle_client(conn, addr):
                 conn.send("[ERROR] File Not Found!")
             time.sleep(0.1)
             conn.send("Task finished!".encode(FORMAT))
+        elif cmd == "UPLOAD":
+            filename = data[1]
+            data = conn.recv(SIZE).decode(FORMAT)
+            time.sleep(0.01)
+            if data[:9] == "[SUCCESS]":
+                filesize = int(data[23:])
+                conn.send("OK".encode(FORMAT))
+                filepath = os.path.join(SERVER_DATA_PATH, filename)
+                f = open(filepath, 'wb')
+                time.sleep(0.01)
+                data = conn.recv(SIZE)
+                totalRecv = len(data)
+                f.write(data)
+                time.sleep(0.01)
+                while totalRecv < filesize:
+                    data = conn.recv(SIZE)
+                    totalRecv += len(data)
+                    f.write(data)
+                print("Upload Completed!")
+                f.close()
+            else:
+                print("File Does Not Exist!")
+            time.sleep(0.01)
+            conn.send("Task Finished!".encode(FORMAT))
         elif cmd == "SUCCESS":
             msg = data[1]
             print(f"{msg}")
