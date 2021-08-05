@@ -2,7 +2,7 @@ import socket
 import os
 
 IP = socket.gethostbyname(socket.gethostname())
-PORT = 5016
+PORT = 5017
 ADDR = (IP, PORT)
 FORMAT = "utf-8"
 SIZE = 1024

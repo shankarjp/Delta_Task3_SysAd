@@ -4,7 +4,7 @@ import threading
 import time
 
 IP = socket.gethostbyname(socket.gethostname())
-PORT = 5016
+PORT = 5017
 ADDR = (IP, PORT)
 SIZE = 1024
 FORMAT = "utf-8"
@@ -41,14 +41,22 @@ def handle_client(conn, addr):
                 userResponse = conn.recv(1024).decode(FORMAT)
                 if userResponse[:2] == "OK":
                     with open(filepath, 'rb') as f:
+                        num = float(os.path.getsize(filepath))/1024
+                        cnum = 0
                         while True:
-                            bytesToSend = f.read(1024)
-                            if not bytesToSend:
+                            file_data = f.read(1024)
+                            cnum += 1
+                            per = (cnum/num) * 100
+                            print(f"{per}% downloaded")
+                            if file_data:
+                                conn.send(file_data)
+                            else:
+                                print("File Downloaded!")
                                 break
-                            conn.send(bytesToSend)
-                            time.sleep(0.1)
+                            
             else:
                 conn.send("[ERROR] File Not Found!")
+            time.sleep(0.1)
             conn.send("Task finished!".encode(FORMAT))
         elif cmd == "SUCCESS":
             msg = data[1]
