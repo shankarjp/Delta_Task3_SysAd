@@ -82,6 +82,18 @@ def handle_client(conn, addr):
                 print("File Does Not Exist!")
             time.sleep(0.01)
             conn.send("Task Finished!".encode(FORMAT))
+        elif cmd == "REMOVE":
+            files = os.listdir(SERVER_DATA_PATH)
+            filename = data[1]
+            if len(files) == 0:
+                conn.send("The Sever Directory is Empty!".encode(FORMAT))
+            else:
+                if filename in files:
+                    os.system(f"rm {SERVER_DATA_PATH}/{filename}")
+                    conn.send("File Successfully Removed!".encode(FORMAT))
+                else:
+                    conn.send("File Not Found!".encode(FORMAT))
+
         elif cmd == "SUCCESS":
             msg = data[1]
             print(f"{msg}")

@@ -78,6 +78,8 @@ def main():
                 else:
                     client.send("[ERROR] File Not Found!")
                 time.sleep(0.01)
+        elif cmd == "REMOVE":
+            client.send(raw_data.encode(FORMAT))
 
     print("Disconnected from the server")
     client.close()
