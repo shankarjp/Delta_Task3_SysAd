@@ -5,7 +5,7 @@ import time
 from Crypto.Cipher import AES
 
 IP = socket.gethostbyname(socket.gethostname())
-PORT = 5018
+PORT = 5019
 ADDR = (IP, PORT)
 SIZE = 1024
 FORMAT = "utf-8"
@@ -18,6 +18,9 @@ SERVER_DATA_PATH = os.path.join(cwd,"server_data")
 def pad(data):
     return data + ((16 - len(data) % 16)*'{')
 
+def pad_file(data):
+    return data + ((16 - len(data) % 16) * b"\0")
+
 def encrypt(data):
     global cipher
     return cipher.encrypt(pad(data))
@@ -26,7 +29,7 @@ def encrypt_file(filename):
     global cipher
     with open(filename, 'rb') as f:
         info = f.read()
-    enc = cipher.encrypt(pad(info))
+    enc = cipher.encrypt(pad_file(info))
     with open(filename + ".enc", 'wb') as f:
         f.write(enc)
     os.remove(filename)
@@ -34,15 +37,15 @@ def encrypt_file(filename):
 def decrypt(data):
     global cipher
     dec = cipher.decrypt(data).decode(FORMAT)
-    l = dec.count('{')
+    l = dec.count("{")
     return dec[:len(dec)-l]
 
 def decrypt_file(filename):
     global cipher
     with open(filename, 'rb') as f:
         info = f.read()
-    dec = cipher.decrypt(info).decode(FORMAT)
-    l = dec.count("{")
+    dec = cipher.decrypt(info)
+    l = dec.count(b"\0")
     dec = dec[:len(dec)-l]
     with open(filename[:-4], 'wb') as f:
         f.write(dec)
@@ -65,7 +68,7 @@ def handle_client(conn, addr):
             conn.send("SEND@<message> : send a message to server\n".encode(FORMAT))
             conn.send("UPLOAD@<filename> : upload file to server_data\n".encode(FORMAT))
             conn.send("DOWNLOAD@<filename> : download file from server_data\n".encode(FORMAT))
-            conn.send("REMOVE@<filename> : remove file from server_data\n")
+            conn.send("REMOVE@<filename> : remove file from server_data\n".encode(FORMAT))
             conn.send("HELP : help section\n".encode(FORMAT))
             conn.send("LOGOUT : logout of client".encode(FORMAT))
         elif cmd == "SEND":
@@ -75,12 +78,14 @@ def handle_client(conn, addr):
         elif cmd == "DOWNLOAD":
             filename = data[1]
             filepath = os.path.join(SERVER_DATA_PATH, filename)
+            print(filepath)
             if os.path.isfile(filepath):
                 conn.send(f"[SUCCESS] File Exists! {str(os.path.getsize(filepath))}".encode(FORMAT))
                 userResponse = conn.recv(1024).decode(FORMAT)
                 if userResponse[:2] == "OK":
-                    with open(filepath, 'rb') as f:
-                        num = float(os.path.getsize(filepath))/1024
+                    encrypt_file(filepath)
+                    with open(filepath + ".enc", 'rb') as f:
+                        num = float(os.path.getsize(filepath + ".enc"))/1024
                         cnum = 0
                         while True:
                             file_data = f.read(1024)
@@ -92,9 +97,10 @@ def handle_client(conn, addr):
                             else:
                                 print("File Downloaded!")
                                 break
+                    decrypt_file(filepath + ".enc")
                             
             else:
-                conn.send("[ERROR] File Not Found!")
+                conn.send("[ERROR] File Not Found!".encode(FORMAT))
             time.sleep(0.1)
             conn.send("Task finished!".encode(FORMAT))
         elif cmd == "UPLOAD":
@@ -105,7 +111,7 @@ def handle_client(conn, addr):
                 filesize = int(data[23:])
                 conn.send("OK".encode(FORMAT))
                 filepath = os.path.join(SERVER_DATA_PATH, filename)
-                f = open(filepath, 'wb')
+                f = open(filepath + ".enc", 'wb')
                 time.sleep(0.01)
                 data = conn.recv(SIZE)
                 totalRecv = len(data)
@@ -117,6 +123,7 @@ def handle_client(conn, addr):
                     f.write(data)
                 print("Upload Completed!")
                 f.close()
+                decrypt_file(filepath + ".enc")
             else:
                 print("File Does Not Exist!")
             time.sleep(0.01)

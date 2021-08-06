@@ -4,7 +4,7 @@ import time
 from Crypto.Cipher import AES
 
 IP = socket.gethostbyname(socket.gethostname())
-PORT = 5018
+PORT = 5019
 ADDR = (IP, PORT)
 FORMAT = "utf-8"
 SIZE = 1024
@@ -17,6 +17,9 @@ CLIENT_DATA_PATH = os.path.join(cwd,"client_data")
 def pad(data):
     return data + ((16 - len(data) % 16)*'{')
 
+def pad_file(data):
+    return data + ((16 - len(data) % 16) * b"\0")
+
 def encrypt(data):
     global cipher
     return cipher.encrypt(pad(data))
@@ -25,7 +28,7 @@ def encrypt_file(filename):
     global cipher
     with open(filename, 'rb') as f:
         info = f.read()
-    enc = cipher.encrypt(pad(info))
+    enc = cipher.encrypt(pad_file(info))
     with open(filename + ".enc", 'wb') as f:
         f.write(enc)
     os.remove(filename)
@@ -40,8 +43,9 @@ def decrypt_file(filename):
     global cipher
     with open(filename, 'rb') as f:
         info = f.read()
-    dec = cipher.decrypt(info).decode(FORMAT)
-    l = dec.count("{")
+    dec = cipher.decrypt(info)
+    print(dec)
+    l = dec.count(b"\0")
     dec = dec[:len(dec)-l]
     with open(filename[:-4], 'wb') as f:
         f.write(dec)
@@ -81,7 +85,7 @@ def main():
                 if message == 'Y':
                     client.send("OK".encode(FORMAT))
                     filepath = os.path.join(CLIENT_DATA_PATH, filename)
-                    f = open(filepath, 'wb')
+                    f = open(filepath + ".enc", 'wb')
                     data = client.recv(1024)
                     totalRecv = len(data)
                     f.write(data)
@@ -91,6 +95,7 @@ def main():
                         f.write(data)
                     print("Download Completed!")
                     f.close()
+                    decrypt_file(filepath + ".enc")
             else:
                 print("File Does Not Exist!")
         elif cmd == "UPLOAD":
@@ -104,8 +109,9 @@ def main():
                 time.sleep(0.01)
                 serverResponse = client.recv(SIZE).decode(FORMAT)
                 if serverResponse[:2] == "OK":
-                    with open(filepath, 'rb') as f:
-                        num = float(os.path.getsize(filepath))/1024
+                    encrypt_file(filepath)
+                    with open(filepath + ".enc", 'rb') as f:
+                        num = float(os.path.getsize(filepath + ".enc"))/1024
                         cnum = 0
                         while True:
                             file_data = f.read(SIZE)
@@ -117,6 +123,7 @@ def main():
                             else:
                                 print("File Uploaded")
                                 break
+                    decrypt_file(filepath + ".enc")
                 else:
                     client.send("[ERROR] File Not Found!")
                 time.sleep(0.01)
