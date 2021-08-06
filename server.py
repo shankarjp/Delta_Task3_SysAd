@@ -5,7 +5,7 @@ import time
 from Crypto.Cipher import AES
 
 IP = socket.gethostbyname(socket.gethostname())
-PORT = 5021
+PORT = 5022
 ADDR = (IP, PORT)
 SIZE = 1024
 FORMAT = "utf-8"
@@ -103,7 +103,9 @@ def handle_client(conn, addr):
             filename = data[1]
             data = conn.recv(SIZE).decode(FORMAT)
             time.sleep(0.01)
+            print("check1")
             if data[:9] == "[SUCCESS]":
+                print("check2")
                 filesize = int(data[23:])
                 conn.send("OK".encode(FORMAT))
                 filepath = os.path.join(SERVER_DATA_PATH, filename)
@@ -120,15 +122,16 @@ def handle_client(conn, addr):
                 print("Upload Completed!")
                 f.close()
                 decrypt_file(filepath + ".enc")
+                conn.send("Task Finished!\n".encode(FORMAT))
             else:
-                print("File Does Not Exist!")
-            time.sleep(0.01)
-            conn.send("Task Finished!\n".encode(FORMAT))
+                print("check3")
+                conn.send("File Does Not Exist!\n".encode(FORMAT))
+                print("check4")
         elif cmd == "CONTINUE":
             conn.send(" ".encode(FORMAT))
             time.sleep(0.01)
         else:
-            conn.send("Invalid Command! Try Again.".encode(FORMAT))
+            conn.send("Invalid Command! Try Again.\n".encode(FORMAT))
     print(f"[DISCONNECTED] {addr} disconnected")
     conn.close()
 

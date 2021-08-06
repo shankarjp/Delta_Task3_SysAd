@@ -4,7 +4,7 @@ import time
 from Crypto.Cipher import AES
 
 IP = socket.gethostbyname(socket.gethostname())
-PORT = 5021
+PORT = 5022
 ADDR = (IP, PORT)
 FORMAT = "utf-8"
 SIZE = 1024
@@ -128,8 +128,13 @@ def main():
                                 break
                     decrypt_file(filepath + ".enc")
                 else:
-                    client.send("[ERROR] File Not Found!")
+                    time.sleep(0.01)
+                    client.send("[ERROR] File Not Found!".encode(FORMAT))
                 time.sleep(0.01)
+            else:
+                print("check1")
+                client.send("[ERROR] File Not Found!".encode(FORMAT))
+                print("check2")
         elif cmd == "REMOVE":
             files = os.listdir(CLIENT_DATA_PATH)
             filename = mod_data[1]
