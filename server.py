@@ -5,7 +5,7 @@ import time
 from Crypto.Cipher import AES
 
 IP = socket.gethostbyname(socket.gethostname())
-PORT = 5019
+PORT = 5021
 ADDR = (IP, PORT)
 SIZE = 1024
 FORMAT = "utf-8"
@@ -68,12 +68,15 @@ def handle_client(conn, addr):
             conn.send("UPLOAD@<filename> : upload file to server_data\n".encode(FORMAT))
             conn.send("DOWNLOAD@<filename> : download file from server_data\n".encode(FORMAT))
             conn.send("REMOVE@<filename> : remove file from server_data\n".encode(FORMAT))
+            conn.send("LIST@server : list files in server directory\n".encode(FORMAT))
+            conn.send("LIST@client : list files in client directory\n".encode(FORMAT))
             conn.send("HELP : help section\n".encode(FORMAT))
-            conn.send("LOGOUT : logout of client".encode(FORMAT))
+            conn.send("LOGOUT : logout of client\n".encode(FORMAT))
         elif cmd == "SEND":
             alert = f"[MESSAGE] {addr} {data[1]}"
             print(f"{alert}")
-            conn.send("Message Received!".encode(FORMAT))
+            time.sleep(0.01)
+            conn.send("Message Received!\n".encode(FORMAT))
         elif cmd == "DOWNLOAD":
             filename = data[1]
             filepath = os.path.join(SERVER_DATA_PATH, filename)
@@ -95,7 +98,7 @@ def handle_client(conn, addr):
             else:
                 conn.send("[ERROR] File Not Found!".encode(FORMAT))
             time.sleep(0.1)
-            conn.send("Task finished!".encode(FORMAT))
+            conn.send("Task finished!\n".encode(FORMAT))
         elif cmd == "UPLOAD":
             filename = data[1]
             data = conn.recv(SIZE).decode(FORMAT)
@@ -120,18 +123,10 @@ def handle_client(conn, addr):
             else:
                 print("File Does Not Exist!")
             time.sleep(0.01)
-            conn.send("Task Finished!".encode(FORMAT))
-        elif cmd == "REMOVE":
-            files = os.listdir(SERVER_DATA_PATH)
-            filename = data[1]
-            if len(files) == 0:
-                conn.send("The Sever Directory is Empty!".encode(FORMAT))
-            else:
-                if filename in files:
-                    os.system(f"rm {SERVER_DATA_PATH}/{filename}")
-                    conn.send("File Successfully Removed!".encode(FORMAT))
-                else:
-                    conn.send("File Not Found!".encode(FORMAT))
+            conn.send("Task Finished!\n".encode(FORMAT))
+        elif cmd == "CONTINUE":
+            conn.send(" ".encode(FORMAT))
+            time.sleep(0.01)
         else:
             conn.send("Invalid Command! Try Again.".encode(FORMAT))
     print(f"[DISCONNECTED] {addr} disconnected")
