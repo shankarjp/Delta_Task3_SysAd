@@ -2,22 +2,60 @@ import os
 import socket
 import threading
 import time
+from Crypto.Cipher import AES
 
 IP = socket.gethostbyname(socket.gethostname())
-PORT = 5017
+PORT = 5018
 ADDR = (IP, PORT)
 SIZE = 1024
 FORMAT = "utf-8"
+KEY = b'\xbf\xc0\x85)\x10nc\x94\x02)j\xdf\xcb\xc4\x94\x9d(\x9e[EX\xc8\xd5\xbfI{\xa2$\x05(\xd5\x18'
+cipher = AES.new(KEY)
 
 cwd = os.getcwd()
 SERVER_DATA_PATH = os.path.join(cwd,"server_data")
+
+def pad(data):
+    return data + ((16 - len(data) % 16)*'{')
+
+def encrypt(data):
+    global cipher
+    return cipher.encrypt(pad(data))
+
+def encrypt_file(filename):
+    global cipher
+    with open(filename, 'rb') as f:
+        info = f.read()
+    enc = cipher.encrypt(pad(info))
+    with open(filename + ".enc", 'wb') as f:
+        f.write(enc)
+    os.remove(filename)
+
+def decrypt(data):
+    global cipher
+    dec = cipher.decrypt(data).decode(FORMAT)
+    l = dec.count('{')
+    return dec[:len(dec)-l]
+
+def decrypt_file(filename):
+    global cipher
+    with open(filename, 'rb') as f:
+        info = f.read()
+    dec = cipher.decrypt(info).decode(FORMAT)
+    l = dec.count("{")
+    dec = dec[:len(dec)-l]
+    with open(filename[:-4], 'wb') as f:
+        f.write(dec)
+    os.remove(filename)
 
 def handle_client(conn, addr):
     print(f"[NEW CONNECTION] {addr} connnected")
     conn.send("Welcome to the File Server!".encode(FORMAT))
 
     while True:
-        data = conn.recv(SIZE).decode(FORMAT)
+        data = conn.recv(SIZE)
+        print(data)
+        data = decrypt(data)
         data = data.split("@")
         cmd = data[0]
         if cmd == "LOGOUT":
@@ -25,8 +63,9 @@ def handle_client(conn, addr):
         elif cmd == "HELP":
             conn.send("HELP Section\n".encode(FORMAT))
             conn.send("SEND@<message> : send a message to server\n".encode(FORMAT))
-            conn.send("UPLOAD@<filename> : upload a file to server_data\n".encode(FORMAT))
-            conn.send("DOWNLOAD@<filename> : download a file from server_data\n".encode(FORMAT))
+            conn.send("UPLOAD@<filename> : upload file to server_data\n".encode(FORMAT))
+            conn.send("DOWNLOAD@<filename> : download file from server_data\n".encode(FORMAT))
+            conn.send("REMOVE@<filename> : remove file from server_data\n")
             conn.send("HELP : help section\n".encode(FORMAT))
             conn.send("LOGOUT : logout of client".encode(FORMAT))
         elif cmd == "SEND":
