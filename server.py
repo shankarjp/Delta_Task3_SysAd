@@ -57,7 +57,6 @@ def handle_client(conn, addr):
 
     while True:
         data = conn.recv(SIZE)
-        print(data)
         data = decrypt(data)
         data = data.split("@")
         cmd = data[0]
@@ -78,20 +77,14 @@ def handle_client(conn, addr):
         elif cmd == "DOWNLOAD":
             filename = data[1]
             filepath = os.path.join(SERVER_DATA_PATH, filename)
-            print(filepath)
             if os.path.isfile(filepath):
                 conn.send(f"[SUCCESS] File Exists! {str(os.path.getsize(filepath))}".encode(FORMAT))
                 userResponse = conn.recv(1024).decode(FORMAT)
                 if userResponse[:2] == "OK":
                     encrypt_file(filepath)
                     with open(filepath + ".enc", 'rb') as f:
-                        num = float(os.path.getsize(filepath + ".enc"))/1024
-                        cnum = 0
                         while True:
                             file_data = f.read(1024)
-                            cnum += 1
-                            per = (cnum/num) * 100
-                            print(f"{per}% downloaded")
                             if file_data:
                                 conn.send(file_data)
                             else:
@@ -139,10 +132,8 @@ def handle_client(conn, addr):
                     conn.send("File Successfully Removed!".encode(FORMAT))
                 else:
                     conn.send("File Not Found!".encode(FORMAT))
-
-        elif cmd == "SUCCESS":
-            msg = data[1]
-            print(f"{msg}")
+        else:
+            conn.send("Invalid Command! Try Again.".encode(FORMAT))
     print(f"[DISCONNECTED] {addr} disconnected")
     conn.close()
 

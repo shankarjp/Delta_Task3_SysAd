@@ -44,7 +44,6 @@ def decrypt_file(filename):
     with open(filename, 'rb') as f:
         info = f.read()
     dec = cipher.decrypt(info)
-    print(dec)
     l = dec.count(b"\0")
     dec = dec[:len(dec)-l]
     with open(filename[:-4], 'wb') as f:
@@ -68,7 +67,6 @@ def main():
             client.send(raw_data)
         elif cmd == "SEND":
             raw_data = encrypt(raw_data)
-            print(raw_data)
             client.send(raw_data)
         elif cmd == "LOGOUT":
             raw_data = encrypt(raw_data)
@@ -111,13 +109,8 @@ def main():
                 if serverResponse[:2] == "OK":
                     encrypt_file(filepath)
                     with open(filepath + ".enc", 'rb') as f:
-                        num = float(os.path.getsize(filepath + ".enc"))/1024
-                        cnum = 0
                         while True:
                             file_data = f.read(SIZE)
-                            cnum += 1
-                            per = (cnum/num) * 100
-                            print(f"{per}% uploaded")
                             if file_data:
                                 client.send(file_data)
                             else:
@@ -128,6 +121,9 @@ def main():
                     client.send("[ERROR] File Not Found!")
                 time.sleep(0.01)
         elif cmd == "REMOVE":
+            raw_data = encrypt(raw_data)
+            client.send(raw_data)
+        else:
             raw_data = encrypt(raw_data)
             client.send(raw_data)
 
